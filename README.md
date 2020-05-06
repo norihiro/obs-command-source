@@ -1,7 +1,7 @@
 Dummy Source to Execute Command
 ===============================
 
-This plugin provides a dummy source to execute arbitral command when scene is switched.
+This plugin provides a dummy source to execute arbitrary command when scene is switched.
 
 Current Features
 ----------------
@@ -31,6 +31,7 @@ Planned Features
 * Support Mac OS X and Windows
   Currently this plugin is only tested on Linux.
   It should work on Mac OS X but Windows need more implementation.
+* Icon
 
 Build
 -----
