@@ -3,17 +3,15 @@ Dummy Source to Execute Command
 
 This plugin provides a dummy source to execute arbitrary command when scene is switched.
 
-Current Features
-----------------
+## Current Features
 
 * Execute command at following events.
-  * Show (the scene is shown in preview)
-  * Hide (the scene is hidden from preview)
+  * Show (the scene is shown in either preview or program)
+  * Hide (the scene is hidden so that no longer shown in neither preview nor program)
   * Activate (the scene goes to the program)
   * Deactivate (the scene goes from the program)
 
-Possible Usage
---------------
+## Possible Usage
 
 * Implementing custom tally lights.
 * Control PTZ cameras by switching the scene.
@@ -21,8 +19,7 @@ Possible Usage
 * Start and stop a daemon program required for the scene.
 * Not limited to above.
 
-Planned Features
-----------------
+## Planned Features
 
 * Environmental variables or parametric arguments to pass more information
   * Scene name
@@ -33,20 +30,36 @@ Planned Features
   It should work on Mac OS X but Windows need more implementation.
 * Icon
 
-Build
------
+## Build
 
-You can either build the plugin as a standalone project or integrate it
-into the build of OBS Studio.
+### Linux
+```
+git clone https://github.com/norihiro/obs-command-source.git
+cd obs-command-source
+mkdir build && cd build
+cmake \
+	-DLIBOBS_INCLUDE_DIR="<path to the libobs sub-folder in obs-studio's source code>" \
+	-DCMAKE_INSTALL_PREFIX=/usr ..
+make -j4
+sudo make install
+```
 
-Building it as a standalone project follows the standard cmake approach.
-Create a new directory and run `cmake ... <path_to_source>` for whichever
-build system you use. You may have to set the `CMAKE_INCLUDE_PATH`
-environment variable to the location of libobs's header files if cmake
-does not find them automatically. You may also have to set the
-`CMAKE_LIBRARY_PATH` environment variable to the location of the libobs
-binary if cmake does not find it automatically.
+### OS X
+```
+git clone https://github.com/norihiro/obs-command-source.git
+cd obs-command-source
+mkdir build && cd build
+cmake \
+	-DLIBOBS_INCLUDE_DIR=<path to the libobs sub-folder in obs-studio's source code> \
+	-DLIBOBS_LIB=<path to libobs.0.dylib> \
+	-DOBS_FRONTEND_LIB=<path to libobs-frontend-api.dylib> \
+	-DQt5Core_DIR=/usr/local/opt/qt5/lib/cmake/Qt5Core \
+	-DQt5Widgets_DIR=/usr/local/opt/qt5/lib/cmake/Qt5Widgets ..
+make -j4
+# Copy command-source.so to the obs-plugins folder
+```
 
+### Integrate into OBS Studio
 To integrate the plugin into the OBS Studio build put the source into a
 subdirectory of the `plugins` folder of OBS Studio and add it to the
 CMakeLists.txt.
