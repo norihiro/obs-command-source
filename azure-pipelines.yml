@@ -1,0 +1,32 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+jobs:
+- job: macOS
+  pool:
+    vmImage: 'macos-10.14'
+  steps:
+  - checkout: self
+    submodules: true
+
+  - script: ./CI/install-dependencies-macos.sh
+    displayName: 'Install dependencies'
+
+  - script: ./CI/install-build-obs-macos.sh
+    displayName: 'Build OBS'
+
+  - script: ./CI/build-macos.sh
+    displayName: 'Build the plugin'
+
+  - script: ./CI/package-macos.sh
+    displayName: 'Package obs-command-source'
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathtoPublish: './release'
+      artifactName: 'macos_build'
