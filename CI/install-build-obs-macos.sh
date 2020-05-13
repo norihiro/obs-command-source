@@ -32,12 +32,12 @@ cd obs-studio
 OBSLatestTag=$(git describe --tags --abbrev=0)
 git checkout $OBSLatestTag
 echo 'add_subdirectory(obs-frontend-api)' > UI/CMakeLists.txt
+true > plugins/CMakeLists.txt
 mkdir build && cd build
 echo "[command-source] Building obs-studio.."
 cmake .. \
 	-DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 \
-	-DDISABLE_PLUGINS=true \
-    -DENABLE_SCRIPTING=0 \
+	-DENABLE_SCRIPTING=0 \
 	-DDepsPath=/tmp/obsdeps \
 	-DCMAKE_PREFIX_PATH=/usr/local/opt/qt/lib/cmake \
 && make -j4

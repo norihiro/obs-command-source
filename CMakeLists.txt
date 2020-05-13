@@ -9,8 +9,10 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if (WIN32 OR APPLE)
-    include(external/FindLibobs.cmake)
+if(NOT OBS_OUTPUT_DIR)
+	if (WIN32 OR APPLE)
+	    include(external/FindLibobs.cmake)
+	endif()
 endif()
 
 find_package(LibObs REQUIRED)
@@ -61,4 +63,8 @@ if(UNIX AND NOT APPLE)
 
 	install(FILES ${locale_files}
 		DESTINATION "${CMAKE_INSTALL_FULL_DATAROOTDIR}/obs/obs-plugins/command-source/locale")
+endif()
+
+if(OBS_OUTPUT_DIR)
+	install_obs_plugin_with_data(command-source data)
 endif()
