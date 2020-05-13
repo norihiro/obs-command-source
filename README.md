@@ -53,8 +53,7 @@ cmake \
 	-DLIBOBS_INCLUDE_DIR=<path to the libobs sub-folder in obs-studio's source code> \
 	-DLIBOBS_LIB=<path to libobs.0.dylib> \
 	-DOBS_FRONTEND_LIB=<path to libobs-frontend-api.dylib> \
-	-DQt5Core_DIR=/usr/local/opt/qt5/lib/cmake/Qt5Core \
-	-DQt5Widgets_DIR=/usr/local/opt/qt5/lib/cmake/Qt5Widgets ..
+	..
 make -j4
 # Copy command-source.so to the obs-plugins folder
 ```
