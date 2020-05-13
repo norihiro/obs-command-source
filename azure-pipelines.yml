@@ -26,6 +26,9 @@ jobs:
   - script: ./CI/package-macos.sh
     displayName: 'Package obs-command-source'
 
+  - script: ./CI/build-macos-integrated.sh
+    displayName: 'Build the plugin as a submodule of obs-studio'
+
   - task: PublishBuildArtifacts@1
     inputs:
       pathtoPublish: './release'

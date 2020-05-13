@@ -59,6 +59,9 @@ make -j4
 ```
 
 ### Integrate into OBS Studio
-To integrate the plugin into the OBS Studio build put the source into a
-subdirectory of the `plugins` folder of OBS Studio and add it to the
-CMakeLists.txt.
+```
+cd obs-studio/plugins
+git clone https://github.com/norihiro/obs-command-source.git
+echo 'add_subdirectory(obs-command-source)' >> CMakeLists.txt
+# Build and install OBS Studio.
+```
