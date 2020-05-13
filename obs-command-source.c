@@ -75,7 +75,6 @@ static obs_properties_t *command_source_get_properties(void *unused)
 {
 	UNUSED_PARAMETER(unused);
 	obs_properties_t *props;
-	obs_property_t *prop;
 
 	props = obs_properties_create();
 

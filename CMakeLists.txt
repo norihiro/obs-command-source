@@ -1,10 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(obs-command-source)
 
-set(CMAKE_PREFIX_PATH "${QTDIR}")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,24 +14,13 @@ endif()
 
 find_package(LibObs REQUIRED)
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-	set(ARCH 64)
-else()
-	set(ARCH 32)
-endif()
-
 set(command-source_SOURCES obs-command-source.c)
 
-# set(command-source_HEADERS )
-
 add_library(command-source MODULE ${command-source_SOURCES})
-
 
 include_directories(
 	"${LIBOBS_INCLUDE_DIR}/../UI/obs-frontend-api"
 	)
-
-
 
 target_link_libraries(command-source
 	libobs
