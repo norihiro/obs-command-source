@@ -14,7 +14,6 @@ if (WIN32 OR APPLE)
 endif()
 
 find_package(LibObs REQUIRED)
-find_package(Qt5 REQUIRED Core Widgets)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 	set(ARCH 64)
@@ -31,15 +30,13 @@ add_library(command-source MODULE ${command-source_SOURCES})
 
 include_directories(
 	"${LIBOBS_INCLUDE_DIR}/../UI/obs-frontend-api"
-	${Qt5Core_INCLUDES}
-	${Qt5Widgets_INCLUDES})
+	)
 
 
 
 target_link_libraries(command-source
 	libobs
-	Qt5::Core
-	Qt5::Widgets)
+	)
 
 # OSX
 if(APPLE)
