@@ -31,6 +31,7 @@ git clone https://github.com/obsproject/obs-studio
 cd obs-studio
 OBSLatestTag=$(git describe --tags --abbrev=0)
 git checkout $OBSLatestTag
+echo 'add_subdirectory(obs-frontend-api)' > UI/CMakeLists.txt
 mkdir build && cd build
 echo "[command-source] Building obs-studio.."
 cmake .. \
