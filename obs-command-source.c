@@ -1,6 +1,7 @@
 ﻿#include <obs-module.h>
 #include <util/platform.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <math.h>
 #include <unistd.h>
 
@@ -12,15 +13,21 @@ struct command_source {
 
 	bool is_showing;
 	bool is_active;
+
+	DARRAY(pid_t) running_pids;
 };
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE("obs-command-source", "en-US")
 
-static void fork_exec(const char *cmd)
+static void fork_exec(const char *cmd, struct command_source *s)
 {
-	if(!fork()) {
+	pid_t pid = fork();
+	if(!pid) {
 		execl("/bin/sh", "sh", "-c", cmd, (char*)NULL);
+	}
+	else if(pid!=-1) {
+		da_push_back(s->running_pids, &pid);
 	}
 }
 
@@ -28,7 +35,7 @@ static void cmdsrc_show(void *data)
 {
 	struct command_source *s = data;
 	if(s->cmd_show) {
-		fork_exec(s->cmd_show);
+		fork_exec(s->cmd_show, s);
 	}
 }
 
@@ -36,7 +43,7 @@ static void cmdsrc_hide(void *data)
 {
 	struct command_source *s = data;
 	if(s->cmd_hide) {
-		fork_exec(s->cmd_hide);
+		fork_exec(s->cmd_hide, s);
 	}
 }
 
@@ -44,7 +51,7 @@ static void cmdsrc_activate(void *data)
 {
 	struct command_source *s = data;
 	if(s->cmd_activate) {
-		fork_exec(s->cmd_activate);
+		fork_exec(s->cmd_activate, s);
 	}
 }
 
@@ -52,7 +59,7 @@ static void cmdsrc_deactivate(void *data)
 {
 	struct command_source *s = data;
 	if(s->cmd_deactivate) {
-		fork_exec(s->cmd_deactivate);
+		fork_exec(s->cmd_deactivate, s);
 	}
 }
 
@@ -94,6 +101,7 @@ static void command_source_destroy(void *data)
 	if (s->cmd_hide) bfree(s->cmd_hide);
 	if (s->cmd_activate) bfree(s->cmd_activate);
 	if (s->cmd_deactivate) bfree(s->cmd_deactivate);
+	da_free(s->running_pids);
 
 	bfree(s);
 }
@@ -116,10 +124,25 @@ static void *command_source_create(obs_data_t *settings, obs_source_t *source)
 {
 	UNUSED_PARAMETER(source);
 	struct command_source *s = bzalloc(sizeof(struct command_source));
+	da_init(s->running_pids);
 
 	command_source_update(s, settings);
 
 	return s;
+}
+
+static void cmdsrc_tick(void *data, float seconds)
+{
+	UNUSED_PARAMETER(seconds);
+	struct command_source *s = data;
+
+	for(size_t i = 0; i < s->running_pids.num; i++) {
+		pid_t pid = waitpid(s->running_pids.array[i], NULL, WNOHANG);
+		if(pid!=0) {
+			da_erase(s->running_pids, i);
+			i--;
+		}
+	}
 }
 
 static struct obs_source_info command_source_info = {
@@ -135,6 +158,7 @@ static struct obs_source_info command_source_info = {
 	.deactivate = cmdsrc_deactivate,
 	.get_defaults = command_source_get_defaults,
 	.get_properties = command_source_get_properties,
+	.video_tick = cmdsrc_tick,
 };
 
 bool obs_module_load()
