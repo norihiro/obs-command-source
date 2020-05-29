@@ -17,6 +17,8 @@ This plugin provides a dummy source to execute arbitrary command when scene is s
 * Control PTZ cameras by switching the scene.
   You may combine with CURL to send some commands.
 * Start and stop a daemon program required for the scene.
+* Trigger other operations through websocket at the event.
+  A helper script is available at `tools/request-websocket.py`.
 * Not limited to above.
 
 ## Planned Features
