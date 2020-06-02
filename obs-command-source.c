@@ -1,9 +1,13 @@
 ﻿#include <obs-module.h>
 #include <util/platform.h>
+#include <math.h>
+#ifdef _WIN32
+#include <Windows.h>
+#else
 #include <sys/stat.h>
 #include <sys/wait.h>
-#include <math.h>
 #include <unistd.h>
+#endif
 
 struct command_source {
 	char *cmd_show;
@@ -14,7 +18,9 @@ struct command_source {
 	bool is_showing;
 	bool is_active;
 
+#ifndef _WIN32
 	DARRAY(pid_t) running_pids;
+#endif // not _WIN32
 };
 
 OBS_DECLARE_MODULE()
@@ -22,6 +28,11 @@ OBS_MODULE_USE_DEFAULT_LOCALE("obs-command-source", "en-US")
 
 static void fork_exec(const char *cmd, struct command_source *s)
 {
+#ifdef _WIN32
+	PROCESS_INFORMATION pi = { 0 };
+	STARTUPINFO si = { sizeof(STARTUPINFO) };
+	CreateProcess(NULL, cmd, NULL, NULL, FALSE, BELOW_NORMAL_PRIORITY_CLASS, NULL, NULL, &si, &pi);
+#else
 	pid_t pid = fork();
 	if(!pid) {
 		execl("/bin/sh", "sh", "-c", cmd, (char*)NULL);
@@ -29,6 +40,7 @@ static void fork_exec(const char *cmd, struct command_source *s)
 	else if(pid!=-1) {
 		da_push_back(s->running_pids, &pid);
 	}
+#endif
 }
 
 static void cmdsrc_show(void *data)
@@ -72,10 +84,12 @@ static const char *command_source_name(void *unused)
 
 static void command_source_get_defaults(obs_data_t *settings)
 {
+#ifndef _WIN32
 	obs_data_set_default_string(settings, "cmd_show", "/bin/echo going to preview");
 	obs_data_set_default_string(settings, "cmd_hide", "/bin/echo hiding from preview");
 	obs_data_set_default_string(settings, "cmd_activate", "/bin/echo going to program");
 	obs_data_set_default_string(settings, "cmd_deactivate", "/bin/echo retiring from program");
+#endif // not _WIN32
 }
 
 static obs_properties_t *command_source_get_properties(void *unused)
@@ -101,7 +115,9 @@ static void command_source_destroy(void *data)
 	if (s->cmd_hide) bfree(s->cmd_hide);
 	if (s->cmd_activate) bfree(s->cmd_activate);
 	if (s->cmd_deactivate) bfree(s->cmd_deactivate);
+#ifndef _WIN32
 	da_free(s->running_pids);
+#endif // not _WIN32
 
 	bfree(s);
 }
@@ -124,13 +140,16 @@ static void *command_source_create(obs_data_t *settings, obs_source_t *source)
 {
 	UNUSED_PARAMETER(source);
 	struct command_source *s = bzalloc(sizeof(struct command_source));
+#ifndef _WIN32
 	da_init(s->running_pids);
+#endif // not _WIN32
 
 	command_source_update(s, settings);
 
 	return s;
 }
 
+#ifndef _WIN32
 static void cmdsrc_tick(void *data, float seconds)
 {
 	UNUSED_PARAMETER(seconds);
@@ -144,6 +163,7 @@ static void cmdsrc_tick(void *data, float seconds)
 		}
 	}
 }
+#endif // not _WIN32
 
 static struct obs_source_info command_source_info = {
 	.id = "command_source",
@@ -158,7 +178,9 @@ static struct obs_source_info command_source_info = {
 	.deactivate = cmdsrc_deactivate,
 	.get_defaults = command_source_get_defaults,
 	.get_properties = command_source_get_properties,
+#ifndef _WIN32
 	.video_tick = cmdsrc_tick,
+#endif // not _WIN32
 };
 
 bool obs_module_load()
