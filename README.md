@@ -29,7 +29,6 @@ This plugin provides a dummy source to execute arbitrary command when scene is s
   * Other sources in the same scene
 * Support Mac OS X and Windows
   Currently this plugin is only tested on Linux.
-  It should work on Mac OS X but Windows need more implementation.
 * Icon
 
 ## Build
@@ -58,12 +57,4 @@ cmake \
 	..
 make -j4
 # Copy command-source.so to the obs-plugins folder
-```
-
-### Integrate into OBS Studio
-```
-cd obs-studio/plugins
-git clone https://github.com/norihiro/obs-command-source.git
-echo 'add_subdirectory(obs-command-source)' >> CMakeLists.txt
-# Build and install OBS Studio.
 ```
