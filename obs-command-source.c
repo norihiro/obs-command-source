@@ -33,6 +33,8 @@ static void fork_exec(const char *cmd, struct command_source *s)
 	STARTUPINFO si = { sizeof(STARTUPINFO) };
 	char *p = bstrdup(cmd);
 	CreateProcess(NULL, p, NULL, NULL, FALSE, BELOW_NORMAL_PRIORITY_CLASS | CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
+	CloseHandle(pi.hThread);
+	CloseHandle(pi.hProcess);
 	bfree(p);
 #else
 	pid_t pid = fork();
@@ -124,6 +126,13 @@ static void command_source_destroy(void *data)
 	bfree(s);
 }
 
+static inline char * bstrdup_nonzero(const char *s)
+{
+	if (!*s)
+		return NULL;
+	return bstrdup(s);
+}
+
 static void command_source_update(void *data, obs_data_t *settings)
 {
 	struct command_source *s = data;
@@ -132,10 +141,10 @@ static void command_source_update(void *data, obs_data_t *settings)
 	if (s->cmd_hide) bfree(s->cmd_hide);
 	if (s->cmd_activate) bfree(s->cmd_activate);
 	if (s->cmd_deactivate) bfree(s->cmd_deactivate);
-	s->cmd_show = bstrdup(obs_data_get_string(settings, "cmd_show"));
-	s->cmd_hide = bstrdup(obs_data_get_string(settings, "cmd_hide"));
-	s->cmd_activate = bstrdup(obs_data_get_string(settings, "cmd_activate"));
-	s->cmd_deactivate = bstrdup(obs_data_get_string(settings, "cmd_deactivate"));
+	s->cmd_show = bstrdup_nonzero(obs_data_get_string(settings, "cmd_show"));
+	s->cmd_hide = bstrdup_nonzero(obs_data_get_string(settings, "cmd_hide"));
+	s->cmd_activate = bstrdup_nonzero(obs_data_get_string(settings, "cmd_activate"));
+	s->cmd_deactivate = bstrdup_nonzero(obs_data_get_string(settings, "cmd_deactivate"));
 }
 
 static void *command_source_create(obs_data_t *settings, obs_source_t *source)
