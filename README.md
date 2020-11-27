@@ -27,8 +27,8 @@ This plugin provides a dummy source to execute arbitrary command when scene is s
   * Scene name
   * Source name
   * Other sources in the same scene
-* Support Mac OS X and Windows
-  Currently this plugin is only tested on Linux.
+* Support Mac OS X
+  Currently this plugin is only tested on Linux and Windows.
 * Icon
 
 ## Build
