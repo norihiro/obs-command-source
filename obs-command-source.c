@@ -32,7 +32,7 @@ static void fork_exec(const char *cmd, struct command_source *s)
 	PROCESS_INFORMATION pi = { 0 };
 	STARTUPINFO si = { sizeof(STARTUPINFO) };
 	char *p = bstrdup(cmd);
-	CreateProcess(NULL, p, NULL, NULL, FALSE, BELOW_NORMAL_PRIORITY_CLASS, NULL, NULL, &si, &pi);
+	CreateProcess(NULL, p, NULL, NULL, FALSE, BELOW_NORMAL_PRIORITY_CLASS | CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
 	bfree(p);
 #else
 	pid_t pid = fork();
