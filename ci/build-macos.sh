@@ -14,7 +14,7 @@ if [ "${HAS_CMAKE}" = "" ]; then
     exit 1
 fi
 
-echo "[$0] Building 'command-source' for macOS."
+echo "[$0] Building 'obs-command-source' for macOS."
 mkdir -p build && cd build
 cmake .. \
 	-DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 \

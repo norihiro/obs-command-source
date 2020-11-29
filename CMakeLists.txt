@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.12)
-project(command-source)
-set(CMAKE_PROJECT_VERSION 0.1.3)
+project(obs-command-source)
+set(CMAKE_PROJECT_VERSION 0.1.4)
 
 set(PLUGIN_AUTHOR "Norihiro Kamae")
 set(MACOS_BUNDLEID "net.nagater.obs-command-source")
@@ -37,15 +37,18 @@ configure_file(
 	../ci/ci_includes.generated.cmd
 )
 
-set(command-source_SOURCES obs-command-source.c)
+set(PLUGIN_SOURCES
+	obs-command-source.c
+	)
 
-add_library(command-source MODULE ${command-source_SOURCES})
+# --- Platform-independent build settings ---
+add_library(${CMAKE_PROJECT_NAME} MODULE ${PLUGIN_SOURCES})
 
 include_directories(
 	"${LIBOBS_INCLUDE_DIR}/../UI/obs-frontend-api"
 	)
 
-target_link_libraries(command-source
+target_link_libraries(${CMAKE_PROJECT_NAME}
 	libobs
 	)
 
@@ -97,25 +100,24 @@ if(UNIX AND NOT APPLE)
 
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -mtune=core2 -Ofast")
 
-	set_target_properties(command-source PROPERTIES PREFIX "")
-	target_link_libraries(command-source obs-frontend-api)
+	set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES PREFIX "")
+	target_link_libraries(${CMAKE_PROJECT_NAME} obs-frontend-api)
 
 	file(GLOB locale_files data/locale/*.ini)
 
-	install(TARGETS command-source
+	install(TARGETS ${CMAKE_PROJECT_NAME}
 		LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/obs-plugins)
 
 	install(FILES ${locale_files}
-		DESTINATION "${CMAKE_INSTALL_FULL_DATAROOTDIR}/obs/obs-plugins/command-source/locale")
+		DESTINATION "${CMAKE_INSTALL_FULL_DATAROOTDIR}/obs/obs-plugins/${CMAKE_PROJECT_NAME}/locale")
 endif()
 
 # -- OS X specific build settings and tasks --
 if(APPLE)
-	set_target_properties(command-source PROPERTIES PREFIX "")
-	target_link_libraries(command-source
-		"${OBS_FRONTEND_LIB}")
+	set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES PREFIX "")
+	target_link_libraries(${CMAKE_PROJECT_NAME} "${OBS_FRONTEND_LIB}")
 endif()
 
 if(OBS_OUTPUT_DIR)
-	install_obs_plugin_with_data(command-source data)
+	install_obs_plugin_with_data(obs-command-source data)
 endif()

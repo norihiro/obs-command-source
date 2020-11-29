@@ -20,7 +20,7 @@ VERSION="$GIT_HASH-$GIT_BRANCH_OR_TAG"
 FILENAME_UNSIGNED="obs-command-source-$VERSION-Unsigned.pkg"
 FILENAME="obs-command-source-$VERSION.pkg"
 
-echo "[$0] Modifying command-source.so"
+echo "[$0] Modifying obs-command-source.so"
 install_name_tool \
 	-change /usr/local/opt/qt/lib/QtWidgets.framework/Versions/5/QtWidgets \
 		@executable_path/../Frameworks/QtWidgets.framework/Versions/5/QtWidgets \
@@ -28,15 +28,15 @@ install_name_tool \
 		@executable_path/../Frameworks/QtGui.framework/Versions/5/QtGui \
 	-change /usr/local/opt/qt/lib/QtCore.framework/Versions/5/QtCore \
 		@executable_path/../Frameworks/QtCore.framework/Versions/5/QtCore \
-	./build/command-source.so
+	./build/obs-command-source.so
 
 # Check if replacement worked
 echo "[$0] Dependencies for obs-command-source"
-otool -L ./build/command-source.so
+otool -L ./build/obs-command-source.so
 
 if [[ "$RELEASE_MODE" == "True" ]]; then
-	echo "[$0] Signing plugin binary: command-source.so"
-	codesign --sign "$CODE_SIGNING_IDENTITY" ./build/command-source.so
+	echo "[$0] Signing plugin binary: obs-command-source.so"
+	codesign --sign "$CODE_SIGNING_IDENTITY" ./build/obs-command-source.so
 else
 	echo "[$0] Skipped plugin codesigning"
 fi
