@@ -56,5 +56,5 @@ cmake \
 	-DOBS_FRONTEND_LIB=<path to libobs-frontend-api.dylib> \
 	..
 make -j4
-# Copy command-source.so to the obs-plugins folder
+# Copy obs-command-source.so to the obs-plugins folder
 ```
