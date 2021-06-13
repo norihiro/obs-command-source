@@ -24,7 +24,7 @@ async def connect_and_send(rr):
 			print(json.dumps(res, indent="\t"))
 	await ws.disconnect()
 
-help='''NAME
+help_str='''NAME
 	request-websocket.py - a helper command to send requests to OBS Studio
 
 SYNOPSIS
@@ -55,7 +55,7 @@ def main():
 	st = 0
 	for a in sys.argv[1:]:
 		if a=='--help':
-			print(help)
+			print(help_str)
 			return 0
 		if st==0:
 			req = a
