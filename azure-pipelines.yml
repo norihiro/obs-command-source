@@ -64,6 +64,7 @@ jobs:
         QTDIR32: $(QTDIR32)
         QTDIR64: $(QTDIR64)
         OBSPath: $(OBSPath)
+        OBSLatestTag: 26.1.2
 
     - task: MSBuild@1
       displayName: 'Build OBS Studio 32-bit'
