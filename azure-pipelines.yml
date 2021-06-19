@@ -1,17 +1,27 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+variables:
+  macosSignAndNotarize: false
+  isReleaseMode: ${{ and(eq(variables['isReleaseMode'], true), startsWith(variables['Build.SourceBranch'], 'refs/tags/')) }}
+  buildWin32: true
+  buildWin64: true
 
 trigger:
-- master
+  branches:
+    include:
+      - master
+      - main
+  tags:
+    include:
+      - '*'
+  paths:
+    exclude:
+      - '**.md'
 
 jobs:
 - job: 'Build_Windows'
   pool:
     vmImage: 'windows-2019'
   variables:
-    build_config: Release
+    build_config: RelWithDebInfo
     DepsBasePath: 'D:\obsdependencies'
     DepsPath32: '$(DepsBasePath)\win32'
     DepsPath64: '$(DepsBasePath)\win64'
@@ -19,6 +29,7 @@ jobs:
     QTDIR32: '$(QtBaseDir)\5.10.1\msvc2017'
     QTDIR64: '$(QtBaseDir)\5.10.1\msvc2017_64'
     OBSPath: 'D:\obs-studio'
+  condition: or(eq(variables['buildWin32'], true), eq(variables['buildWin64'], true))
   steps:
     - checkout: self
       submodules: true
@@ -56,15 +67,20 @@ jobs:
         QTDIR32: $(QTDIR32)
         QTDIR64: $(QTDIR64)
         OBSPath: $(OBSPath)
+        OBSLatestTag: 26.1.2
+        buildWin32: $(buildWin32)
+        buildWin64: $(buildWin64)
 
     - task: MSBuild@1
       displayName: 'Build OBS Studio 32-bit'
+      condition: eq(variables['buildWin32'], true)
       inputs:
         msbuildArguments: '/m /p:Configuration=$(build_config)'
         solution: '$(OBSPath)\build32\obs-studio.sln'
 
     - task: MSBuild@1
       displayName: 'Build OBS Studio 64-bit'
+      condition: eq(variables['buildWin64'], true)
       inputs:
         msbuildArguments: '/m /p:Configuration=$(build_config)'
         solution: '$(OBSPath)\build64\obs-studio.sln'
@@ -76,15 +92,19 @@ jobs:
         QTDIR32: $(QTDIR32)
         QTDIR64: $(QTDIR64)
         OBSPath: $(OBSPath)
+        buildWin32: $(buildWin32)
+        buildWin64: $(buildWin64)
 
     - task: MSBuild@1
       displayName: 'Build Plugin 32-bit'
+      condition: eq(variables['buildWin32'], true)
       inputs:
         msbuildArguments: '/m /p:Configuration=$(build_config)'
         solution: '.\build32\main.sln'
 
     - task: MSBuild@1
       displayName: 'Build Plugin 64-bit'
+      condition: eq(variables['buildWin64'], true)
       inputs:
         msbuildArguments: '/m /p:Configuration=$(build_config)'
         solution: '.\build64\main.sln'
@@ -98,26 +118,55 @@ jobs:
         pathtoPublish: './package'
         artifactName: 'windows_build'
 
-- job: macOS
+- job: 'Build_Linux'
+  pool:
+    vmImage: 'ubuntu-18.04'
+  variables:
+      BUILD_REASON: $(Build.Reason)
+  steps:
+    - checkout: self
+      submodules: true
+
+    - script: ./ci/linux/install-dependencies-ubuntu.sh
+      displayName: 'Install dependencies'
+
+    - script: ./ci/linux/build-ubuntu.sh
+      displayName: 'Build Plugin'
+
+    - script: ./ci/linux/package-ubuntu.sh
+      displayName: 'Package Plugin'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathtoPublish: './package'
+        artifactName: 'deb_build'
+
+- job: 'Build_macOS'
   pool:
     vmImage: 'macos-10.14'
   steps:
-  - checkout: self
-    submodules: true
+    - checkout: self
+      submodules: true
 
-  - script: ./ci/install-dependencies-macos.sh
-    displayName: 'Install dependencies'
+    - script: ./ci/macos/install-build-obs-macos.sh
+      displayName: 'Build OBS'
+      env:
+        OBSLatestTag: 26.1.2
 
-  - script: ./ci/install-build-obs-macos.sh
-    displayName: 'Build OBS'
+    - script: ./ci/macos/build-macos.sh
+      displayName: 'Build Plugin'
 
-  - script: ./ci/build-macos.sh
-    displayName: 'Build the plugin'
+    - script: ./ci/macos/package-macos.sh
+      displayName: 'Package Plugin'
+      env:
+        RELEASE_MODE: $(isReleaseMode)
+        CODE_SIGNING_IDENTITY: $(secrets.macOS.codeSigningIdentity)
+        INSTALLER_SIGNING_IDENTITY: $(secrets.macOS.installerSigningIdentity)
+        AC_USERNAME: $(secrets.macOS.notarization.username)
+        AC_PASSWORD: $(secrets.macOS.notarization.password)
+        AC_PROVIDER_SHORTNAME: $(secrets.macOS.notarization.providerShortName)
 
-  - script: ./ci/package-macos.sh
-    displayName: 'Package obs-command-source'
-
-  - task: PublishBuildArtifacts@1
-    inputs:
-      pathtoPublish: './release'
-      artifactName: 'macos_build'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathtoPublish: './release'
+        artifactName: 'macos_build'

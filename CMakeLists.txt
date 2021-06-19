@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.10)
 project(obs-command-source)
 set(CMAKE_PROJECT_VERSION 0.1.4)
 
@@ -18,7 +18,7 @@ if(NOT OBS_OUTPUT_DIR)
 endif()
 
 if (WIN32 OR APPLE)
-	include(external/FindLibobs.cmake)
+	include(external/FindLibObs.cmake)
 endif()
 
 find_package(LibObs REQUIRED)
@@ -46,11 +46,11 @@ add_library(${CMAKE_PROJECT_NAME} MODULE ${PLUGIN_SOURCES})
 
 include_directories(
 	"${LIBOBS_INCLUDE_DIR}/../UI/obs-frontend-api"
-	)
+)
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
 	libobs
-	)
+)
 
 # --- Windows-specific build settings and tasks ---
 if(WIN32)
@@ -85,11 +85,55 @@ if(WIN32)
 	set(RELEASE_DIR "${PROJECT_SOURCE_DIR}/release")
 
     add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
-        COMMAND "${CMAKE_COMMAND}" -E make_directory "${RELEASE_DIR}/data/obs-plugins/${CMAKE_PROJECT_NAME}" "${RELEASE_DIR}/obs-plugins/${ARCH_NAME}"
+        # If config is Release or RelWithDebInfo, package release files
+        COMMAND if $<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>==1 (
+            "${CMAKE_COMMAND}" -E make_directory
+                "${RELEASE_DIR}/data/obs-plugins/${CMAKE_PROJECT_NAME}"
+                "${RELEASE_DIR}/obs-plugins/${ARCH_NAME}"
+        )
 
-        COMMAND "${CMAKE_COMMAND}" -E copy_directory "${PROJECT_SOURCE_DIR}/data" "${RELEASE_DIR}/data/obs-plugins/${CMAKE_PROJECT_NAME}"
+        COMMAND if $<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>==1 (
+            "${CMAKE_COMMAND}" -E copy_directory
+                "${PROJECT_SOURCE_DIR}/data"
+                "${RELEASE_DIR}/data/obs-plugins/${CMAKE_PROJECT_NAME}"
+        )
 
-        COMMAND "${CMAKE_COMMAND}" -E copy "$<TARGET_FILE:${CMAKE_PROJECT_NAME}>" "${RELEASE_DIR}/obs-plugins/${ARCH_NAME}/"
+        COMMAND if $<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>==1 (
+            "${CMAKE_COMMAND}" -E copy
+                "$<TARGET_FILE:${CMAKE_PROJECT_NAME}>"
+                "${RELEASE_DIR}/obs-plugins/${ARCH_NAME}"
+        )
+
+        # If config is RelWithDebInfo, copy the pdb file
+        COMMAND if $<CONFIG:RelWithDebInfo>==1 (
+            "${CMAKE_COMMAND}" -E copy
+                "$<TARGET_PDB_FILE:${CMAKE_PROJECT_NAME}>"
+                "${RELEASE_DIR}/obs-plugins/${ARCH_NAME}"
+        )
+
+        # Copy to obs-studio dev environment for immediate testing
+        COMMAND if $<CONFIG:Debug>==1 (
+            "${CMAKE_COMMAND}" -E copy
+                "$<TARGET_FILE:${CMAKE_PROJECT_NAME}>"
+                "${LIBOBS_INCLUDE_DIR}/../${OBS_BUILDDIR_ARCH}/rundir/$<CONFIG>/obs-plugins/${ARCH_NAME}"
+        )
+
+        COMMAND if $<CONFIG:Debug>==1 (
+            "${CMAKE_COMMAND}" -E copy
+                "$<TARGET_PDB_FILE:${CMAKE_PROJECT_NAME}>"
+                "${LIBOBS_INCLUDE_DIR}/../${OBS_BUILDDIR_ARCH}/rundir/$<CONFIG>/obs-plugins/${ARCH_NAME}"
+        )
+
+        COMMAND if $<CONFIG:Debug>==1 (
+            "${CMAKE_COMMAND}" -E make_directory
+                "${LIBOBS_INCLUDE_DIR}/../${OBS_BUILDDIR_ARCH}/rundir/$<CONFIG>/data/obs-plugins/${CMAKE_PROJECT_NAME}"
+        )
+
+        COMMAND if $<CONFIG:Debug>==1 (
+            "${CMAKE_COMMAND}" -E copy_directory
+                "${PROJECT_SOURCE_DIR}/data"
+                "${LIBOBS_INCLUDE_DIR}/../${OBS_BUILDDIR_ARCH}/rundir/$<CONFIG>/data/obs-plugins/${CMAKE_PROJECT_NAME}"
+        )
     )
 
 endif()
@@ -98,15 +142,13 @@ endif()
 if(UNIX AND NOT APPLE)
 	include(GNUInstallDirs)
 
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -mtune=core2 -Ofast")
-
 	set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES PREFIX "")
 	target_link_libraries(${CMAKE_PROJECT_NAME} obs-frontend-api)
 
 	file(GLOB locale_files data/locale/*.ini)
 
 	install(TARGETS ${CMAKE_PROJECT_NAME}
-		LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/obs-plugins)
+		LIBRARY DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}/obs-plugins")
 
 	install(FILES ${locale_files}
 		DESTINATION "${CMAKE_INSTALL_FULL_DATAROOTDIR}/obs/obs-plugins/${CMAKE_PROJECT_NAME}/locale")
@@ -114,10 +156,12 @@ endif()
 
 # -- OS X specific build settings and tasks --
 if(APPLE)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -fvisibility=default")
+
 	set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES PREFIX "")
 	target_link_libraries(${CMAKE_PROJECT_NAME} "${OBS_FRONTEND_LIB}")
 endif()
 
 if(OBS_OUTPUT_DIR)
-	install_obs_plugin_with_data(obs-command-source data)
+	install_obs_plugin_with_data(${CMAKE_PROJECT_NAME} data)
 endif()
