@@ -10,6 +10,8 @@ This plugin provides a dummy source to execute arbitrary command when scene is s
   * Hide (the scene is hidden so that no longer shown in neither preview nor program)
   * Activate (the scene goes to the program)
   * Deactivate (the scene goes from the program)
+  * Show in preview (the scene goes to the preview)
+  * Hide from preview (the scene goes from the preview)
 
 ## Possible Usage
 
