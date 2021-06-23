@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <stdlib.h>
 #endif
 
 struct command_source {
@@ -31,6 +32,18 @@ struct command_source {
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE("obs-command-source", "en-US")
 
+static void setenv_if(const char *name, const char *val)
+{
+	if (val)
+		setenv(name, val, 1);
+}
+
+static void setenv_int(const char *name, int val)
+{
+	char s[16]; snprintf(s, sizeof(s), "%d", val); s[sizeof(s)-1]=0;
+	setenv(name, s, 1);
+}
+
 static void fork_exec(const char *cmd, struct command_source *s)
 {
 #ifdef _WIN32
@@ -42,13 +55,26 @@ static void fork_exec(const char *cmd, struct command_source *s)
 	CloseHandle(pi.hProcess);
 	bfree(p);
 #else
+	obs_source_t *current_src = obs_frontend_get_current_scene();
+	obs_source_t *preview_src = NULL;
+	if (obs_frontend_preview_program_mode_active())
+		preview_src = obs_frontend_get_current_preview_scene();
+
 	pid_t pid = fork();
 	if(!pid) {
+		setenv_if("OBS_CURRENT_SCENE", obs_source_get_name(current_src));
+		setenv_if("OBS_PREVIEW_SCENE", obs_source_get_name(preview_src));
+		setenv_if("OBS_SOURCE_NAME", obs_source_get_name(s->self));
+		setenv_int("OBS_TRANSITION_DURATION", obs_frontend_get_transition_duration());
+
 		execl("/bin/sh", "sh", "-c", cmd, (char*)NULL);
 	}
 	else if(pid!=-1) {
 		da_push_back(s->running_pids, &pid);
 	}
+
+	obs_source_release(current_src);
+	obs_source_release(preview_src);
 #endif
 }
 
