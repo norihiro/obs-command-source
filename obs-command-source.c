@@ -153,16 +153,6 @@ static const char *command_source_name(void *unused)
 	return obs_module_text("execute-command");
 }
 
-static void command_source_get_defaults(obs_data_t *settings)
-{
-#ifndef _WIN32
-	obs_data_set_default_string(settings, "cmd_show", "/bin/echo going to preview");
-	obs_data_set_default_string(settings, "cmd_hide", "/bin/echo hiding from preview");
-	obs_data_set_default_string(settings, "cmd_activate", "/bin/echo going to program");
-	obs_data_set_default_string(settings, "cmd_deactivate", "/bin/echo retiring from program");
-#endif // not _WIN32
-}
-
 static obs_properties_t *command_source_get_properties(void *unused)
 {
 	UNUSED_PARAMETER(unused);
@@ -170,12 +160,12 @@ static obs_properties_t *command_source_get_properties(void *unused)
 
 	props = obs_properties_create();
 
-	obs_properties_add_text(props, "cmd_show", obs_module_text("Show"), OBS_TEXT_DEFAULT);
-	obs_properties_add_text(props, "cmd_hide", obs_module_text("Hide"), OBS_TEXT_DEFAULT);
-	obs_properties_add_text(props, "cmd_activate", obs_module_text("Active"), OBS_TEXT_DEFAULT);
-	obs_properties_add_text(props, "cmd_deactivate", obs_module_text("Deactive"), OBS_TEXT_DEFAULT);
-	obs_properties_add_text(props, "cmd_previewed", obs_module_text("Show in preview"), OBS_TEXT_DEFAULT);
-	obs_properties_add_text(props, "cmd_unpreviewed", obs_module_text("Hide from preview"), OBS_TEXT_DEFAULT);
+	obs_properties_add_text(props, "cmd_show", obs_module_text("Shown"), OBS_TEXT_DEFAULT);
+	obs_properties_add_text(props, "cmd_hide", obs_module_text("Hidden"), OBS_TEXT_DEFAULT);
+	obs_properties_add_text(props, "cmd_activate", obs_module_text("Actived"), OBS_TEXT_DEFAULT);
+	obs_properties_add_text(props, "cmd_deactivate", obs_module_text("Deactived"), OBS_TEXT_DEFAULT);
+	obs_properties_add_text(props, "cmd_previewed", obs_module_text("Shown in preview"), OBS_TEXT_DEFAULT);
+	obs_properties_add_text(props, "cmd_unpreviewed", obs_module_text("Hidden from preview"), OBS_TEXT_DEFAULT);
 
 	return props;
 }
@@ -265,7 +255,6 @@ static struct obs_source_info command_source_info = {
 	.hide = cmdsrc_hide,
 	.activate = cmdsrc_activate,
 	.deactivate = cmdsrc_deactivate,
-	.get_defaults = command_source_get_defaults,
 	.get_properties = command_source_get_properties,
 #ifndef _WIN32
 	.video_tick = cmdsrc_tick,
