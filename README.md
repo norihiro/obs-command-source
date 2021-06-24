@@ -23,12 +23,14 @@ This plugin provides a dummy source to execute arbitrary command when scene is s
   A helper script is available at `tools/request-websocket.py`.
 * Not limited to above.
 
+## Caution
+
+Since this plugin execute arbitrary command, user need consider security concern.
+For example, combining with `obs-websocket` plugin,
+remote user could change property through the websocket interface so that arbitrary command can be executed.
+
 ## Planned Features
 
-* Environmental variables or parametric arguments to pass more information
-  * Scene name
-  * Source name
-  * Other sources in the same scene
 * Support Mac OS X
   Currently this plugin is only tested on Linux and Windows.
 * Icon
