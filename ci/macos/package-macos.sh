@@ -21,6 +21,25 @@ if test "$GIT_TAG" == "$GIT_TAG_ONLY"; then
 fi
 
 echo "=> Modifying $PLUGIN_NAME.so"
+mkdir -p lib
+
+function copy_local_dylib
+{
+	local dylib
+	otool -L $1 | awk '/^	\/usr\/local\/(opt|Cellar)\/.*\.dylib/{print $1}' |
+	while read -r dylib; do
+		echo "Changing dependency $1 -> $dylib"
+		local b=$(basename $dylib)
+		if test ! -e lib/$b; then
+			cp $dylib lib/
+			chmod +rwx lib/$b
+			install_name_tool -id "@loader_path/$b" lib/$b
+			copy_local_dylib lib/$b
+		fi
+		install_name_tool -change "$dylib" "@loader_path/../lib/$b" $1
+	done
+}
+
 install_name_tool \
 	-change /tmp/obsdeps/lib/QtWidgets.framework/Versions/5/QtWidgets \
 		@executable_path/../Frameworks/QtWidgets.framework/Versions/5/QtWidgets \
@@ -29,6 +48,8 @@ install_name_tool \
 	-change /tmp/obsdeps/lib/QtCore.framework/Versions/5/QtCore \
 		@executable_path/../Frameworks/QtCore.framework/Versions/5/QtCore \
 	./build/$PLUGIN_NAME.so
+
+copy_local_dylib ./build/${PLUGIN_NAME}.so
 
 # Check if replacement worked
 for dylib in ./build/$PLUGIN_NAME.so lib/*.dylib ; do
