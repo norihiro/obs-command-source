@@ -21,6 +21,7 @@ This plugin provides a dummy source to execute arbitrary command when scene is s
 * Start and stop a daemon program required for the scene.
 * Trigger other operations through websocket at the event.
   A helper script is available at `tools/request-websocket.py`.
+  - Start or stop your streaming and recording.
 * Not limited to above.
 
 ## Caution
@@ -31,8 +32,6 @@ remote user could change property through the websocket interface so that arbitr
 
 ## Planned Features
 
-* Support Mac OS X
-  Currently this plugin is only tested on Linux and Windows.
 * Icon
 
 ## Build
