@@ -13,7 +13,13 @@ async def connect_and_send(rr):
 		import sys
 		sys.stderr.write('Error: This script requires a module simpleobsws (https://github.com/IRLToolkit/simpleobsws).\n')
 		sys.exit(1)
-	ws = simpleobsws.obsws(host='127.0.0.1', port=4444, password=None, loop=loop)
+	obsws_port = 4444
+	try:
+		import os
+		obsws_port = int(os.environ['OBSWS_PORT'])
+	except:
+		pass
+	ws = simpleobsws.obsws(host='127.0.0.1', port=obsws_port, password=None, loop=loop)
 	await ws.connect()
 	for req, data in rr:
 		print('req="%s" data=%s'%(str(req), str(data)))
