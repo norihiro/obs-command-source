@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(obs-command-source)
-set(CMAKE_PROJECT_VERSION 0.2.0)
+set(CMAKE_PROJECT_VERSION 0.2.1)
 
 set(PLUGIN_AUTHOR "Norihiro Kamae")
 set(MACOS_BUNDLEID "net.nagater.obs-command-source")
