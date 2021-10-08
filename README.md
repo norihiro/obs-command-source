@@ -5,13 +5,17 @@ This plugin provides a dummy source to execute arbitrary command when scene is s
 
 ## Current Features
 
-* Execute command at following events.
-  * Show (the scene is shown in either preview or program)
-  * Hide (the scene is hidden so that no longer shown in neither preview nor program)
-  * Activate (the scene goes to the program)
-  * Deactivate (the scene goes from the program)
-  * Show in preview (the scene goes to the preview)
-  * Hide from preview (the scene goes from the preview)
+* Start a command at following events.
+  * Show (the source is shown in either preview or program)
+  * Hide (the source is hidden so that no longer shown in neither preview nor program)
+  * Activate (the source goes to the program)
+  * Deactivate (the source goes from the program)
+  * Show in preview (the source goes to the preview)
+  * Hide from preview (the source goes from the preview)
+* Optionally, kill the created process at these conditions. This feature is not available for Windows as of now.
+  * When hiding, kill the process created at shown.
+  * When deactivating, kill the process created at activated.
+  * When hiding from the preview, kill the process created at preview.
 
 ## Possible Usage
 

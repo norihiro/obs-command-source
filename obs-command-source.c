@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <signal.h>
 #include <stdlib.h>
 #endif
 
@@ -18,6 +19,11 @@ struct command_source {
 	char *cmd_deactivate;
 	char *cmd_previewed;
 	char *cmd_unpreviewed;
+#ifndef _WIN32
+	int sig_show;
+	int sig_activate;
+	int sig_preview;
+#endif
 
 	bool is_shown;
 	bool is_preview, was_preview;
@@ -25,7 +31,16 @@ struct command_source {
 	obs_source_t *self;
 
 #ifndef _WIN32
+	pid_t pid_show;
+	pid_t pid_activate;
+	pid_t pid_preview;
 	DARRAY(pid_t) running_pids;
+#else
+// For Windows, just send dummy information to reuse the code for now.
+// TODO: Implement to hold hProcess and kill it.
+#define pid_show self
+#define pid_activate self
+#define pid_preview self
 #endif // not _WIN32
 };
 
@@ -46,9 +61,16 @@ static void setenv_int(const char *name, int val)
 	setenv(name, s, 1);
 }
 
-static void fork_exec(const char *cmd, struct command_source *s)
+static void fork_exec(const char *cmd, struct command_source *s,
+#ifndef _WIN32
+		pid_t *pid_sig
+#else
+		void *unused
+#endif
+		)
 {
 #ifdef _WIN32
+	UNUSED_PARAMETER(unused);
 	PROCESS_INFORMATION pi = { 0 };
 	STARTUPINFO si = { sizeof(STARTUPINFO) };
 	char *p = bstrdup(cmd);
@@ -72,7 +94,13 @@ static void fork_exec(const char *cmd, struct command_source *s)
 		execl("/bin/sh", "sh", "-c", cmd, (char*)NULL);
 	}
 	else if(pid!=-1) {
-		da_push_back(s->running_pids, &pid);
+		if (pid_sig) {
+			if (*pid_sig)
+				da_push_back(s->running_pids, pid_sig);
+			*pid_sig = pid;
+		}
+		else
+			da_push_back(s->running_pids, &pid);
 	}
 
 	obs_source_release(current_src);
@@ -87,7 +115,7 @@ static void cmdsrc_show(void *data)
 {
 	struct command_source *s = data;
 	if(s->cmd_show) {
-		fork_exec(s->cmd_show, s);
+		fork_exec(s->cmd_show, s, &s->pid_show);
 	}
 
 	check_notify_preview(s);
@@ -100,8 +128,13 @@ static void cmdsrc_hide(void *data)
 {
 	struct command_source *s = data;
 	if(s->cmd_hide) {
-		fork_exec(s->cmd_hide, s);
+		fork_exec(s->cmd_hide, s, NULL);
 	}
+
+#ifndef _WIN32
+	if (s->pid_show && s->sig_show)
+		kill(s->pid_show, s->sig_show);
+#endif
 
 	check_notify_preview(s);
 	if (s->is_shown)
@@ -113,7 +146,7 @@ static void cmdsrc_activate(void *data)
 {
 	struct command_source *s = data;
 	if(s->cmd_activate) {
-		fork_exec(s->cmd_activate, s);
+		fork_exec(s->cmd_activate, s, &s->pid_activate);
 	}
 }
 
@@ -121,20 +154,30 @@ static void cmdsrc_deactivate(void *data)
 {
 	struct command_source *s = data;
 	if(s->cmd_deactivate) {
-		fork_exec(s->cmd_deactivate, s);
+		fork_exec(s->cmd_deactivate, s, NULL);
 	}
+
+#ifndef _WIN32
+	if (s->pid_activate && s->sig_activate)
+		kill(s->pid_activate, s->sig_activate);
+#endif
 }
 
 static inline void cmdsrc_previewed(struct command_source *s)
 {
 	if (s->cmd_previewed)
-		fork_exec(s->cmd_previewed, s);
+		fork_exec(s->cmd_previewed, s, &s->pid_preview);
 }
 
 static inline void cmdsrc_unpreviewed(struct command_source *s)
 {
 	if (s->cmd_unpreviewed)
-		fork_exec(s->cmd_unpreviewed, s);
+		fork_exec(s->cmd_unpreviewed, s, NULL);
+
+#ifndef _WIN32
+	if (s->pid_preview && s->sig_preview)
+		kill(s->pid_preview, s->sig_preview);
+#endif
 }
 
 static void preview_callback(obs_source_t *parent, obs_source_t *child, void *param)
@@ -181,10 +224,20 @@ static const char *command_source_name(void *unused)
 	return obs_module_text("execute-command");
 }
 
+static void command_source_get_defaults(obs_data_t *settings)
+{
+#ifndef _WIN32
+	obs_data_set_default_int(settings, "sig", SIGTERM);
+#endif
+}
+
 static obs_properties_t *command_source_get_properties(void *unused)
 {
 	UNUSED_PARAMETER(unused);
 	obs_properties_t *props;
+#ifndef _WIN32
+	obs_property_t *prop;
+#endif
 
 	props = obs_properties_create();
 
@@ -194,6 +247,20 @@ static obs_properties_t *command_source_get_properties(void *unused)
 	obs_properties_add_text(props, "cmd_deactivate", obs_module_text("Deactivated"), OBS_TEXT_DEFAULT);
 	obs_properties_add_text(props, "cmd_previewed", obs_module_text("Shown in preview"), OBS_TEXT_DEFAULT);
 	obs_properties_add_text(props, "cmd_unpreviewed", obs_module_text("Hidden from preview"), OBS_TEXT_DEFAULT);
+
+#ifndef _WIN32
+	obs_properties_add_bool(props, "sigen_show", obs_module_text("prop-sig-show"));
+	obs_properties_add_bool(props, "sigen_activate", obs_module_text("prop-sig-active"));
+	obs_properties_add_bool(props, "sigen_preview", obs_module_text("prop-sig-preview"));
+	prop = obs_properties_add_list(props, "sig", obs_module_text("prop-sig"), OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
+	obs_property_list_add_int(prop, "SIGABRT", SIGABRT);
+	obs_property_list_add_int(prop, "SIGINT", SIGINT);
+	obs_property_list_add_int(prop, "SIGKILL", SIGKILL);
+	obs_property_list_add_int(prop, "SIGTERM", SIGTERM);
+	obs_property_list_add_int(prop, "SIGHUP", SIGHUP);
+	obs_property_list_add_int(prop, "SIGUSR1", SIGUSR1);
+	obs_property_list_add_int(prop, "SIGUSR2", SIGUSR2);
+#endif
 
 	return props;
 }
@@ -241,6 +308,12 @@ static void command_source_update(void *data, obs_data_t *settings)
 	s->cmd_deactivate = bstrdup_nonzero(obs_data_get_string(settings, "cmd_deactivate"));
 	s->cmd_previewed = bstrdup_nonzero(obs_data_get_string(settings, "cmd_previewed"));
 	s->cmd_unpreviewed = bstrdup_nonzero(obs_data_get_string(settings, "cmd_unpreviewed"));
+#ifndef _WIN32
+	int sig = obs_data_get_int(settings, "sig");
+	s->sig_show = obs_data_get_bool(settings, "sigen_show") ? sig : 0;
+	s->sig_activate = obs_data_get_bool(settings, "sigen_activate") ? sig : 0;
+	s->sig_preview = obs_data_get_bool(settings, "sigen_preview") ? sig : 0;
+#endif
 }
 
 static void *command_source_create(obs_data_t *settings, obs_source_t *source)
@@ -261,6 +334,24 @@ static void cmdsrc_tick(void *data, float seconds)
 {
 	UNUSED_PARAMETER(seconds);
 	struct command_source *s = data;
+
+	if (s->pid_show) {
+		pid_t pid = waitpid(s->pid_show, NULL, WNOHANG);
+		if (pid)
+			s->pid_show = 0;
+	}
+
+	if (s->pid_activate) {
+		pid_t pid = waitpid(s->pid_activate, NULL, WNOHANG);
+		if (pid)
+			s->pid_activate = 0;
+	}
+
+	if (s->pid_preview) {
+		pid_t pid = waitpid(s->pid_preview, NULL, WNOHANG);
+		if (pid)
+			s->pid_preview = 0;
+	}
 
 	for(size_t i = 0; i < s->running_pids.num; i++) {
 		pid_t pid = waitpid(s->running_pids.array[i], NULL, WNOHANG);
@@ -283,6 +374,7 @@ static struct obs_source_info command_source_info = {
 	.hide = cmdsrc_hide,
 	.activate = cmdsrc_activate,
 	.deactivate = cmdsrc_deactivate,
+	.get_defaults = command_source_get_defaults,
 	.get_properties = command_source_get_properties,
 #ifndef _WIN32
 	.video_tick = cmdsrc_tick,
