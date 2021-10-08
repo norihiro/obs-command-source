@@ -32,11 +32,13 @@ struct command_source {
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE("obs-command-source", "en-US")
 
+#ifndef _WIN32
 static void setenv_if(const char *name, const char *val)
 {
 	if (val)
 		setenv(name, val, 1);
 }
+#endif
 
 static void setenv_int(const char *name, int val)
 {
