@@ -12,7 +12,8 @@
 #include <stdlib.h>
 #endif
 
-struct command_source {
+struct command_source
+{
 	char *cmd_show;
 	char *cmd_hide;
 	char *cmd_activate;
@@ -57,22 +58,24 @@ static void setenv_if(const char *name, const char *val)
 
 static void setenv_int(const char *name, int val)
 {
-	char s[16]; snprintf(s, sizeof(s), "%d", val); s[sizeof(s)-1]=0;
+	char s[16];
+	snprintf(s, sizeof(s), "%d", val);
+	s[sizeof(s) - 1] = 0;
 	setenv(name, s, 1);
 }
 
 static void fork_exec(const char *cmd, struct command_source *s,
 #ifndef _WIN32
-		pid_t *pid_sig
+		      pid_t *pid_sig
 #else
-		void *unused
+		      void *unused
 #endif
-		)
+)
 {
 #ifdef _WIN32
 	UNUSED_PARAMETER(unused);
-	PROCESS_INFORMATION pi = { 0 };
-	STARTUPINFO si = { sizeof(STARTUPINFO) };
+	PROCESS_INFORMATION pi = {0};
+	STARTUPINFO si = {sizeof(STARTUPINFO)};
 	char *p = bstrdup(cmd);
 	CreateProcess(NULL, p, NULL, NULL, FALSE, BELOW_NORMAL_PRIORITY_CLASS | CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
 	CloseHandle(pi.hThread);
@@ -85,15 +88,15 @@ static void fork_exec(const char *cmd, struct command_source *s,
 		preview_src = obs_frontend_get_current_preview_scene();
 
 	pid_t pid = fork();
-	if(!pid) {
+	if (!pid) {
 		setenv_if("OBS_CURRENT_SCENE", obs_source_get_name(current_src));
 		setenv_if("OBS_PREVIEW_SCENE", obs_source_get_name(preview_src));
 		setenv_if("OBS_SOURCE_NAME", obs_source_get_name(s->self));
 		setenv_int("OBS_TRANSITION_DURATION", obs_frontend_get_transition_duration());
 
-		execl("/bin/sh", "sh", "-c", cmd, (char*)NULL);
+		execl("/bin/sh", "sh", "-c", cmd, (char *)NULL);
 	}
-	else if(pid!=-1) {
+	else if (pid != -1) {
 		if (pid_sig) {
 			if (*pid_sig)
 				da_push_back(s->running_pids, pid_sig);
@@ -114,7 +117,7 @@ static void on_preview_scene_changed(enum obs_frontend_event event, void *param)
 static void cmdsrc_show(void *data)
 {
 	struct command_source *s = data;
-	if(s->cmd_show) {
+	if (s->cmd_show) {
 		fork_exec(s->cmd_show, s, &s->pid_show);
 	}
 
@@ -127,7 +130,7 @@ static void cmdsrc_show(void *data)
 static void cmdsrc_hide(void *data)
 {
 	struct command_source *s = data;
-	if(s->cmd_hide) {
+	if (s->cmd_hide) {
 		fork_exec(s->cmd_hide, s, NULL);
 	}
 
@@ -145,7 +148,7 @@ static void cmdsrc_hide(void *data)
 static void cmdsrc_activate(void *data)
 {
 	struct command_source *s = data;
-	if(s->cmd_activate) {
+	if (s->cmd_activate) {
 		fork_exec(s->cmd_activate, s, &s->pid_activate);
 	}
 }
@@ -153,7 +156,7 @@ static void cmdsrc_activate(void *data)
 static void cmdsrc_deactivate(void *data)
 {
 	struct command_source *s = data;
-	if(s->cmd_deactivate) {
+	if (s->cmd_deactivate) {
 		fork_exec(s->cmd_deactivate, s, NULL);
 	}
 
@@ -191,7 +194,7 @@ static void preview_callback(obs_source_t *parent, obs_source_t *child, void *pa
 static void check_notify_preview(struct command_source *s)
 {
 	s->is_preview = false;
-	obs_source_t* preview_soure = obs_frontend_get_current_preview_scene();
+	obs_source_t *preview_soure = obs_frontend_get_current_preview_scene();
 	if (preview_soure) {
 		obs_source_enum_active_sources(preview_soure, preview_callback, s);
 		obs_source_release(preview_soure);
@@ -208,12 +211,12 @@ static void on_preview_scene_changed(enum obs_frontend_event event, void *param)
 {
 	struct command_source *s = param;
 	switch (event) {
-		case OBS_FRONTEND_EVENT_STUDIO_MODE_ENABLED:
-		case OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED:
-		case OBS_FRONTEND_EVENT_STUDIO_MODE_DISABLED:
-		case OBS_FRONTEND_EVENT_SCENE_CHANGED:
-			check_notify_preview(s);
-			break;
+	case OBS_FRONTEND_EVENT_STUDIO_MODE_ENABLED:
+	case OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED:
+	case OBS_FRONTEND_EVENT_STUDIO_MODE_DISABLED:
+	case OBS_FRONTEND_EVENT_SCENE_CHANGED:
+		check_notify_preview(s);
+		break;
 	}
 }
 
@@ -252,7 +255,8 @@ static obs_properties_t *command_source_get_properties(void *unused)
 	obs_properties_add_bool(props, "sigen_show", obs_module_text("prop-sig-show"));
 	obs_properties_add_bool(props, "sigen_activate", obs_module_text("prop-sig-active"));
 	obs_properties_add_bool(props, "sigen_preview", obs_module_text("prop-sig-preview"));
-	prop = obs_properties_add_list(props, "sig", obs_module_text("prop-sig"), OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
+	prop = obs_properties_add_list(props, "sig", obs_module_text("prop-sig"), OBS_COMBO_TYPE_LIST,
+				       OBS_COMBO_FORMAT_INT);
 	obs_property_list_add_int(prop, "SIGABRT", SIGABRT);
 	obs_property_list_add_int(prop, "SIGINT", SIGINT);
 	obs_property_list_add_int(prop, "SIGKILL", SIGKILL);
@@ -272,12 +276,18 @@ static void command_source_destroy(void *data)
 	if (s->is_shown)
 		obs_frontend_remove_event_callback(on_preview_scene_changed, data);
 
-	if (s->cmd_show) bfree(s->cmd_show);
-	if (s->cmd_hide) bfree(s->cmd_hide);
-	if (s->cmd_activate) bfree(s->cmd_activate);
-	if (s->cmd_deactivate) bfree(s->cmd_deactivate);
-	if (s->cmd_previewed) bfree(s->cmd_previewed);
-	if (s->cmd_unpreviewed) bfree(s->cmd_unpreviewed);
+	if (s->cmd_show)
+		bfree(s->cmd_show);
+	if (s->cmd_hide)
+		bfree(s->cmd_hide);
+	if (s->cmd_activate)
+		bfree(s->cmd_activate);
+	if (s->cmd_deactivate)
+		bfree(s->cmd_deactivate);
+	if (s->cmd_previewed)
+		bfree(s->cmd_previewed);
+	if (s->cmd_unpreviewed)
+		bfree(s->cmd_unpreviewed);
 #ifndef _WIN32
 	da_free(s->running_pids);
 #endif // not _WIN32
@@ -285,7 +295,7 @@ static void command_source_destroy(void *data)
 	bfree(s);
 }
 
-static inline char * bstrdup_nonzero(const char *s)
+static inline char *bstrdup_nonzero(const char *s)
 {
 	if (!*s)
 		return NULL;
@@ -296,12 +306,18 @@ static void command_source_update(void *data, obs_data_t *settings)
 {
 	struct command_source *s = data;
 
-	if (s->cmd_show) bfree(s->cmd_show);
-	if (s->cmd_hide) bfree(s->cmd_hide);
-	if (s->cmd_activate) bfree(s->cmd_activate);
-	if (s->cmd_deactivate) bfree(s->cmd_deactivate);
-	if (s->cmd_previewed) bfree(s->cmd_previewed);
-	if (s->cmd_unpreviewed) bfree(s->cmd_unpreviewed);
+	if (s->cmd_show)
+		bfree(s->cmd_show);
+	if (s->cmd_hide)
+		bfree(s->cmd_hide);
+	if (s->cmd_activate)
+		bfree(s->cmd_activate);
+	if (s->cmd_deactivate)
+		bfree(s->cmd_deactivate);
+	if (s->cmd_previewed)
+		bfree(s->cmd_previewed);
+	if (s->cmd_unpreviewed)
+		bfree(s->cmd_unpreviewed);
 	s->cmd_show = bstrdup_nonzero(obs_data_get_string(settings, "cmd_show"));
 	s->cmd_hide = bstrdup_nonzero(obs_data_get_string(settings, "cmd_hide"));
 	s->cmd_activate = bstrdup_nonzero(obs_data_get_string(settings, "cmd_activate"));
@@ -353,9 +369,9 @@ static void cmdsrc_tick(void *data, float seconds)
 			s->pid_preview = 0;
 	}
 
-	for(size_t i = 0; i < s->running_pids.num; i++) {
+	for (size_t i = 0; i < s->running_pids.num; i++) {
 		pid_t pid = waitpid(s->running_pids.array[i], NULL, WNOHANG);
-		if(pid!=0) {
+		if (pid != 0) {
 			da_erase(s->running_pids, i);
 			i--;
 		}
@@ -386,8 +402,4 @@ bool obs_module_load()
 	obs_register_source(&command_source_info);
 
 	return true;
-}
-
-void obs_module_unload(void)
-{
 }
