@@ -217,6 +217,8 @@ static void on_preview_scene_changed(enum obs_frontend_event event, void *param)
 	case OBS_FRONTEND_EVENT_SCENE_CHANGED:
 		check_notify_preview(s);
 		break;
+	default:
+		break;
 	}
 }
 
