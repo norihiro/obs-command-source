@@ -95,6 +95,7 @@ static void fork_exec(const char *cmd, struct command_source *s,
 		setenv_int("OBS_TRANSITION_DURATION", obs_frontend_get_transition_duration());
 
 		execl("/bin/sh", "sh", "-c", cmd, (char *)NULL);
+		_exit(1);
 	}
 	else if (pid != -1) {
 		if (pid_sig) {
