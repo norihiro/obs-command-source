@@ -1,11 +1,11 @@
 Dummy Source to Execute Command
 ===============================
 
-This plugin provides a dummy source to execute arbitrary command when scene is switched.
+This plugin provides a dummy source to execute arbitrary commands when a scene is switched.
 
 ## Current Features
 
-* Start a command at following events.
+* Start a command at the following events.
   * Show (the source is shown in either preview or program)
   * Hide (the source is hidden so that no longer shown in neither preview nor program)
   * Activate (the source goes to the program)
@@ -26,17 +26,13 @@ This plugin provides a dummy source to execute arbitrary command when scene is s
 * Trigger other operations through websocket at the event.
   A helper script is available at `tools/request-websocket.py`.
   - Start or stop your streaming and recording.
-* Not limited to above.
+* Not limited to the above.
 
 ## Caution
 
-Since this plugin execute arbitrary command, user need consider security concern.
-For example, combining with `obs-websocket` plugin,
-remote user could change property through the websocket interface so that arbitrary command can be executed.
-
-## Planned Features
-
-* Icon
+Since this plugin executes arbitrary commands, users need to consider security concerns.
+For example, when combining with `obs-websocket` plugin,
+a remote user could change property through the websocket interface so that the arbitrary commands can be executed.
 
 ## Build
 
@@ -52,7 +48,7 @@ make -j4
 sudo make install
 ```
 
-### OS X
+### macOS
 ```
 git clone https://github.com/norihiro/obs-command-source.git
 cd obs-command-source
