@@ -247,12 +247,12 @@ static obs_properties_t *command_source_get_properties(void *unused)
 
 	props = obs_properties_create();
 
-	obs_properties_add_text(props, "cmd_show", obs_module_text("Shown"), OBS_TEXT_DEFAULT);
-	obs_properties_add_text(props, "cmd_hide", obs_module_text("Hidden"), OBS_TEXT_DEFAULT);
-	obs_properties_add_text(props, "cmd_activate", obs_module_text("Activated"), OBS_TEXT_DEFAULT);
-	obs_properties_add_text(props, "cmd_deactivate", obs_module_text("Deactivated"), OBS_TEXT_DEFAULT);
-	obs_properties_add_text(props, "cmd_previewed", obs_module_text("Shown in preview"), OBS_TEXT_DEFAULT);
-	obs_properties_add_text(props, "cmd_unpreviewed", obs_module_text("Hidden from preview"), OBS_TEXT_DEFAULT);
+	obs_properties_add_text(props, "cmd_show", obs_module_text("shown"), OBS_TEXT_DEFAULT);
+	obs_properties_add_text(props, "cmd_hide", obs_module_text("hidden"), OBS_TEXT_DEFAULT);
+	obs_properties_add_text(props, "cmd_activate", obs_module_text("activated"), OBS_TEXT_DEFAULT);
+	obs_properties_add_text(props, "cmd_deactivate", obs_module_text("deactivated"), OBS_TEXT_DEFAULT);
+	obs_properties_add_text(props, "cmd_previewed", obs_module_text("shown-in-preview"), OBS_TEXT_DEFAULT);
+	obs_properties_add_text(props, "cmd_unpreviewed", obs_module_text("hidden-from-preview"), OBS_TEXT_DEFAULT);
 
 #ifndef _WIN32
 	obs_properties_add_bool(props, "sigen_show", obs_module_text("prop-sig-show"));
