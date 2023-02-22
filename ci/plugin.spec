@@ -16,7 +16,7 @@ false color to help color correction.
 %autosetup -p1
 
 %build
-%{cmake} -DLINUX_PORTABLE=OFF
+%{cmake} -DLINUX_PORTABLE=OFF -DLINUX_RPATH=OFF
 %{cmake_build}
 
 %install
