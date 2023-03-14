@@ -16,6 +16,11 @@ find_package(obs-frontend-api REQUIRED)
 include(cmake/ObsPluginHelpers.cmake)
 
 configure_file(
+	plugin-macros.h.in
+	plugin-macros.generated.h
+)
+
+configure_file(
 	installer/installer-Windows.iss.in
 	../installer/installer-Windows.generated.iss
 )
@@ -39,6 +44,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 	OBS::libobs
 	OBS::obs-frontend-api
 )
+
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 if(OS_WINDOWS)
 	# Enable Multicore Builds and disable FH4 (to not depend on VCRUNTIME140_1.DLL when building with VS2019)
