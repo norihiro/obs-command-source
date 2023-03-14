@@ -128,6 +128,14 @@ static void cmdsrc_show(void *data)
 	s->is_shown = true;
 }
 
+#ifndef _WIN32
+static void cmdsrc_kill(const struct command_source *s, pid_t pid, int sig)
+{
+	blog(LOG_DEBUG, "source '%s' sending signal %d to PID %d", obs_source_get_name(s->self), sig, pid);
+	kill(pid, sig);
+}
+#endif
+
 static void cmdsrc_hide(void *data)
 {
 	struct command_source *s = data;
@@ -137,7 +145,7 @@ static void cmdsrc_hide(void *data)
 
 #ifndef _WIN32
 	if (s->pid_show && s->sig_show)
-		kill(s->pid_show, s->sig_show);
+		cmdsrc_kill(s, s->pid_show, s->sig_show);
 #endif
 
 	check_notify_preview(s);
@@ -163,7 +171,7 @@ static void cmdsrc_deactivate(void *data)
 
 #ifndef _WIN32
 	if (s->pid_activate && s->sig_activate)
-		kill(s->pid_activate, s->sig_activate);
+		cmdsrc_kill(s, s->pid_activate, s->sig_activate);
 #endif
 }
 
@@ -180,7 +188,7 @@ static inline void cmdsrc_unpreviewed(struct command_source *s)
 
 #ifndef _WIN32
 	if (s->pid_preview && s->sig_preview)
-		kill(s->pid_preview, s->sig_preview);
+		cmdsrc_kill(s, s->pid_preview, s->sig_preview);
 #endif
 }
 
@@ -349,32 +357,46 @@ static void *command_source_create(obs_data_t *settings, obs_source_t *source)
 }
 
 #ifndef _WIN32
+static bool cmdsrc_waitpid(struct command_source *s, pid_t pid)
+{
+	int wstatus = 0;
+	pid_t ret = waitpid(pid, &wstatus, WNOHANG);
+	if (ret == pid) {
+		char st[32] = {0};
+		if (WIFSIGNALED(wstatus))
+			snprintf(st, sizeof(st) - 1, " by signal %d", WTERMSIG(wstatus));
+		else if (WCOREDUMP(wstatus))
+			snprintf(st, sizeof(st) - 1, " with core dump");
+		else if (WIFEXITED(wstatus))
+			snprintf(st, sizeof(st) - 1, " with status %d", WEXITSTATUS(wstatus));
+		blog(LOG_DEBUG, "source '%s': PID %d exited%s", obs_source_get_name(s->self), pid, st);
+		return true;
+	}
+	return false;
+}
+
 static void cmdsrc_tick(void *data, float seconds)
 {
 	UNUSED_PARAMETER(seconds);
 	struct command_source *s = data;
 
 	if (s->pid_show) {
-		pid_t pid = waitpid(s->pid_show, NULL, WNOHANG);
-		if (pid)
+		if (cmdsrc_waitpid(s, s->pid_show))
 			s->pid_show = 0;
 	}
 
 	if (s->pid_activate) {
-		pid_t pid = waitpid(s->pid_activate, NULL, WNOHANG);
-		if (pid)
+		if (cmdsrc_waitpid(s, s->pid_activate))
 			s->pid_activate = 0;
 	}
 
 	if (s->pid_preview) {
-		pid_t pid = waitpid(s->pid_preview, NULL, WNOHANG);
-		if (pid)
+		if (cmdsrc_waitpid(s, s->pid_preview))
 			s->pid_preview = 0;
 	}
 
 	for (size_t i = 0; i < s->running_pids.num; i++) {
-		pid_t pid = waitpid(s->running_pids.array[i], NULL, WNOHANG);
-		if (pid != 0) {
+		if (cmdsrc_waitpid(s, s->running_pids.array[i])) {
 			da_erase(s->running_pids, i);
 			i--;
 		}
