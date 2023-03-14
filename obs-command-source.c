@@ -108,6 +108,8 @@ static void fork_exec(const char *cmd, struct command_source *s,
 
 	pid_t pid = fork();
 	if (!pid) {
+		pid_t mypid = getpid();
+		setpgid(mypid, mypid);
 		setenv_if("OBS_CURRENT_SCENE", obs_source_get_name(current_src));
 		setenv_if("OBS_PREVIEW_SCENE", obs_source_get_name(preview_src));
 		setenv_if("OBS_SOURCE_NAME", obs_source_get_name(s->self));
@@ -150,8 +152,8 @@ static void cmdsrc_show(void *data)
 #ifndef _WIN32
 static void cmdsrc_kill(const struct command_source *s, pid_t pid, int sig)
 {
-	blog(LOG_DEBUG, "source '%s' sending signal %d to PID %d", obs_source_get_name(s->self), sig, pid);
-	kill(pid, sig);
+	blog(LOG_DEBUG, "source '%s' sending signal %d to PGID %d", obs_source_get_name(s->self), sig, pid);
+	killpg(pid, sig);
 }
 #endif
 
