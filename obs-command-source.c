@@ -54,7 +54,6 @@ static void setenv_if(const char *name, const char *val)
 	if (val)
 		setenv(name, val, 1);
 }
-#endif
 
 static void setenv_int(const char *name, int val)
 {
@@ -63,6 +62,7 @@ static void setenv_int(const char *name, int val)
 	s[sizeof(s) - 1] = 0;
 	setenv(name, s, 1);
 }
+#endif
 
 static void fork_exec(const char *cmd, struct command_source *s,
 #ifndef _WIN32
