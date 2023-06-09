@@ -1,32 +1,44 @@
 #! /usr/bin/python3
 
+import os
+import sys
 import asyncio
 import json
+import simpleobsws
 
 loop = asyncio.get_event_loop()
+
+_exitcode = 0
 
 async def connect_and_send(rr):
 	# NOTE: User has to edit host, port, and password.
 	try:
-		import simpleobsws
-	except ModuleNotFoundError:
-		import sys
-		sys.stderr.write('Error: This script requires a module simpleobsws (https://github.com/IRLToolkit/simpleobsws).\n')
-		sys.exit(1)
+		obsws_host = os.environ['OBSWS_HOST']
+	except:
+		obsws_host = '127.0.0.1'
 	try:
-		import os
 		obsws_port = int(os.environ['OBSWS_PORT'])
 	except:
-		obsws_port = 4444
-	ws = simpleobsws.obsws(host='127.0.0.1', port=obsws_port, password=None, loop=loop)
+		obsws_port = 4455
+	try:
+		obsws_passwd = os.environ['OBSWS_PASSWD']
+	except:
+		obsws_passwd = None
+	ws = simpleobsws.WebSocketClient(url=f'ws://{obsws_host}:{obsws_port}', password=obsws_passwd)
 	await ws.connect()
+	await ws.wait_until_identified()
 	for req, data in rr:
-		print('req="%s" data=%s'%(str(req), str(data)))
 		if req=='sleep':
 			await asyncio.sleep(data)
 		else:
-			res = await ws.call(req, data)
-			print(json.dumps(res, indent="\t"))
+			req = simpleobsws.Request(req, data)
+			res = await ws.call(req)
+			if res.ok():
+				print(json.dumps(res.responseData, indent="\t"))
+			else:
+				global _exitcode
+				_exitcode = 1
+				print('Error: %s' % str(res.responseData), file=sys.stderr)
 	await ws.disconnect()
 
 help_str='''NAME
@@ -78,3 +90,4 @@ def main():
 
 if __name__ == '__main__':
 	main()
+	sys.exit(_exitcode)
