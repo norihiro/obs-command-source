@@ -84,24 +84,10 @@ static void setenv_int(const char *name, int val)
 }
 #endif
 
-static void fork_exec(const char *cmd, struct command_source *s,
 #ifndef _WIN32
-		      pid_t *pid_sig
-#else
-		      void *unused
-#endif
-)
+
+static void fork_exec(const char *cmd, struct command_source *s, pid_t *pid_sig)
 {
-#ifdef _WIN32
-	UNUSED_PARAMETER(unused);
-	PROCESS_INFORMATION pi = {0};
-	STARTUPINFO si = {sizeof(STARTUPINFO)};
-	char *p = bstrdup(cmd);
-	CreateProcess(NULL, p, NULL, NULL, FALSE, BELOW_NORMAL_PRIORITY_CLASS | CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
-	CloseHandle(pi.hThread);
-	CloseHandle(pi.hProcess);
-	bfree(p);
-#else
 	obs_source_t *current_src = obs_frontend_get_current_scene();
 	obs_source_t *preview_src = NULL;
 	if (obs_frontend_preview_program_mode_active())
@@ -131,8 +117,23 @@ static void fork_exec(const char *cmd, struct command_source *s,
 
 	obs_source_release(current_src);
 	obs_source_release(preview_src);
-#endif
 }
+
+#else // _WIN32
+
+static void fork_exec(const char *cmd, struct command_source *s, void *unused)
+{
+	UNUSED_PARAMETER(unused);
+	PROCESS_INFORMATION pi = {0};
+	STARTUPINFO si = {sizeof(STARTUPINFO)};
+	char *p = bstrdup(cmd);
+	CreateProcess(NULL, p, NULL, NULL, FALSE, BELOW_NORMAL_PRIORITY_CLASS | CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
+	CloseHandle(pi.hThread);
+	CloseHandle(pi.hProcess);
+	bfree(p);
+}
+
+#endif
 
 static void check_notify_preview(struct command_source *s);
 static void on_preview_scene_changed(enum obs_frontend_event event, void *param);
