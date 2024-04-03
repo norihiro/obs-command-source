@@ -24,6 +24,11 @@
 #ifdef _WIN32
 #include <Windows.h>
 #else
+#ifdef __APPLE__
+#include <libproc.h>
+#else             // Linux
+#define __USE_GNU // close_range
+#endif
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -86,6 +91,23 @@ static void setenv_int(const char *name, int val)
 
 #ifndef _WIN32
 
+#if defined(__APPLE__)
+static void closefrom(int lower)
+{
+#define NFDS 128
+	struct proc_fdinfo fds[NFDS];
+	pid_t pid = getpid();
+	int ret;
+	do {
+		ret = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, fds, sizeof(fds)) / sizeof(*fds);
+		for (int i = 0; i < ret; i++) {
+			if (fds[i].proc_fd >= lower)
+				close(fds[i].proc_fd);
+		}
+	} while (ret >= NFDS);
+}
+#endif
+
 static void fork_exec(const char *cmd, struct command_source *s, pid_t *pid_sig)
 {
 	obs_source_t *current_src = obs_frontend_get_current_scene();
@@ -101,6 +123,12 @@ static void fork_exec(const char *cmd, struct command_source *s, pid_t *pid_sig)
 		setenv_if("OBS_PREVIEW_SCENE", obs_source_get_name(preview_src));
 		setenv_if("OBS_SOURCE_NAME", obs_source_get_name(s->self));
 		setenv_int("OBS_TRANSITION_DURATION", obs_frontend_get_transition_duration());
+
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__DragonFly__)
+		closefrom(3);
+#else // Linux
+		close_range(3, 65535, 0);
+#endif
 
 		execl("/bin/sh", "sh", "-c", cmd, (char *)NULL);
 		_exit(1);
