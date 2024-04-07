@@ -17,6 +17,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#if !defined(_WIN32) && !defined(__APPLE__)
+#define _GNU_SOURCE // close_range for Linux
+#endif
+
 #include <obs-module.h>
 #include <obs-frontend-api.h>
 #include <util/platform.h>
@@ -26,8 +30,6 @@
 #else
 #ifdef __APPLE__
 #include <libproc.h>
-#else             // Linux
-#define __USE_GNU // close_range
 #endif
 #include <sys/stat.h>
 #include <sys/wait.h>
