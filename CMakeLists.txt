@@ -7,6 +7,7 @@ set(PLUGIN_AUTHOR "Norihiro Kamae")
 set(MACOS_BUNDLEID "net.nagater.obs-command-source")
 set(MACOS_PACKAGE_UUID "DE99133F-7DE7-4A40-BAD9-814A519F32C3")
 set(MACOS_INSTALLER_UUID "D42A28A8-FCE7-45F4-901B-5F333C2ABC94")
+set(PLUGIN_URL "https://obsproject.com/forum/resources/dummy-source-to-execute-command.952/")
 
 set(LINUX_MAINTAINER_EMAIL "norihiro@nagater.net")
 # NOTE: Also edit ci/plugin.spec for RPM when creating a new plugin.
