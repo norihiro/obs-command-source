@@ -6,8 +6,6 @@ import asyncio
 import json
 import simpleobsws
 
-loop = asyncio.get_event_loop()
-
 _exitcode = 0
 
 async def connect_and_send(rr):
@@ -86,6 +84,7 @@ def main():
 			st = 0
 	if st==1:
 		rr.append((req, None))
+	loop = asyncio.new_event_loop()
 	loop.run_until_complete(connect_and_send(rr))
 
 if __name__ == '__main__':
