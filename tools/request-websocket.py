@@ -32,7 +32,8 @@ async def connect_and_send(rr):
 			req = simpleobsws.Request(req, data)
 			res = await ws.call(req)
 			if res.ok():
-				print(json.dumps(res.responseData, indent="\t"))
+				if res.responseData != None:
+					print(json.dumps(res.responseData, indent="\t", ensure_ascii=None))
 			else:
 				global _exitcode
 				_exitcode = 1
