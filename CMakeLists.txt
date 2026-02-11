@@ -10,7 +10,8 @@ set(MACOS_INSTALLER_UUID "D42A28A8-FCE7-45F4-901B-5F333C2ABC94")
 set(PLUGIN_URL "https://obsproject.com/forum/resources/dummy-source-to-execute-command.952/")
 
 set(LINUX_MAINTAINER_EMAIL "norihiro@nagater.net")
-# NOTE: Also edit ci/plugin.spec for RPM when creating a new plugin.
+
+option(ENABLE_COVERAGE "Enable coverage option for GCC" OFF)
 
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
 	find_package(libobs REQUIRED)
@@ -48,6 +49,11 @@ endif()
 
 if(OS_LINUX)
 	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)
+
+	if(ENABLE_COVERAGE)
+		target_compile_options(${PROJECT_NAME} PRIVATE -coverage -fprofile-update=atomic)
+		target_link_options(${PROJECT_NAME} PRIVATE -coverage)
+	endif()
 endif()
 
 if(APPLE)
@@ -57,6 +63,11 @@ if(APPLE)
 	set(MACOSX_PLUGIN_GUI_IDENTIFIER "${MACOS_BUNDLEID}")
 	set(MACOSX_PLUGIN_BUNDLE_VERSION "${PROJECT_VERSION}")
 	set(MACOSX_PLUGIN_SHORT_VERSION_STRING "1")
+
+	if(ENABLE_COVERAGE)
+		target_compile_options(${PROJECT_NAME} PRIVATE -coverage)
+		target_link_options(${PROJECT_NAME} PRIVATE --coverage)
+	endif()
 endif()
 
 setup_plugin_target(${PROJECT_NAME})
