@@ -25,19 +25,19 @@ jobs:
       fail-fast: false
       matrix:
         obs: [27, 28]
-        ubuntu: ['ubuntu-20.04']
+        ubuntu: ['ubuntu-22.04']
     defaults:
       run:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
       - name: Download obs-studio development environment
         id: obsdeps
-        uses: norihiro/obs-studio-devel-action@v1-beta
+        uses: norihiro/obs-studio-devel-action@v2
         with:
           obs: ${{ matrix.obs }}
           verbose: true
@@ -45,38 +45,24 @@ jobs:
 
       - name: Build plugin
         run: |
-          OBS_QT_VERSION_MAJOR=${{ steps.obsdeps.outputs.OBS_QT_VERSION_MAJOR }}
-          mkdir build
-          cd build
-          case ${{ matrix.obs }} in
-            27)
-              cmake_opt=(
-                -D CMAKE_INSTALL_LIBDIR=/usr/lib/
-                -D CPACK_DEBIAN_PACKAGE_DEPENDS='obs-studio (>= 27), obs-studio (<< 28)'
-              )
-              ;;
-            28)
-              cmake_opt=(
-                -D CPACK_DEBIAN_PACKAGE_DEPENDS='obs-studio (>= 28)'
-              )
-              ;;
-          esac
-          cmake .. \
-            -D QT_VERSION=$OBS_QT_VERSION_MAJOR \
-            -D CMAKE_INSTALL_PREFIX=/usr \
+          set -ex
+          cmake -S . -B build \
             -D CMAKE_BUILD_TYPE=RelWithDebInfo \
             -D LINUX_PORTABLE=OFF \
             -D CPACK_DEBIAN_PACKAGE_SHLIBDEPS=ON \
             -D PKG_SUFFIX=-obs${{ matrix.obs }}-${{ matrix.ubuntu }}-x86_64 \
-            "${cmake_opt[@]}"
+            ${{ steps.obsdeps.outputs.PLUGIN_CMAKE_OPTIONS }}
+          cd build
           make -j4
           make package
           echo "FILE_NAME=$(find $PWD -name '*.deb' | head -n 1)" >> $GITHUB_ENV
+
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.artifactName }}-linux-obs${{ matrix.obs }}-${{ matrix.ubuntu }}
           path: '${{ env.FILE_NAME }}'
+
       - name: Check package
         run: |
           . build/ci/ci_includes.generated.sh
@@ -84,7 +70,7 @@ jobs:
           sudo apt install '${{ env.FILE_NAME }}'
           case ${{ matrix.obs }} in
             27) plugins_dir=/usr/lib/obs-plugins ;;
-            28) plugins_dir=/usr/lib/x86_64-linux-gnu/obs-plugins ;;
+            *)  plugins_dir=/usr/lib/x86_64-linux-gnu/obs-plugins ;;
           esac
           ldd $plugins_dir/${PLUGIN_NAME}.so > ldd.out
           if grep not.found ldd.out ; then
@@ -94,7 +80,7 @@ jobs:
           ls /usr/share/obs/obs-plugins/${PLUGIN_NAME}/
 
   macos_build:
-    runs-on: macos-12
+    runs-on: macos-14
     strategy:
       fail-fast: false
       matrix:
@@ -108,7 +94,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -134,7 +120,7 @@ jobs:
 
       - name: Install Apple Developer Certificate
         if: ${{ github.event_name != 'pull_request' && steps.setup.outputs.haveCodesignIdent == 'true' }}
-        uses: apple-actions/import-codesign-certs@v2
+        uses: apple-actions/import-codesign-certs@fe74d46e82474f87e1ba79832ad28a4013d0e33a # v6.1.0
         with:
           keychain-password: ${{ github.run_id }}
           p12-file-base64: ${{ secrets.MACOS_SIGNING_CERT }}
@@ -152,9 +138,8 @@ jobs:
 
       - name: Download obs-studio development environment
         id: obsdeps
-        uses: norihiro/obs-studio-devel-action@v1-beta
+        uses: norihiro/obs-studio-devel-action@v2
         with:
-          path: /tmp/deps-${{ matrix.obs }}-${{ matrix.arch }}
           arch: ${{ matrix.arch }}
           obs: ${{ matrix.obs }}
           verbose: true
@@ -163,32 +148,18 @@ jobs:
       - name: Build plugin
         run: |
           arch=${{ matrix.arch }}
-          deps=/tmp/deps-${{ matrix.obs }}-${{ matrix.arch }}
           MACOSX_DEPLOYMENT_TARGET=${{ steps.obsdeps.outputs.MACOSX_DEPLOYMENT_TARGET }}
           OBS_QT_VERSION_MAJOR=${{ steps.obsdeps.outputs.OBS_QT_VERSION_MAJOR }}
           GIT_TAG=$(git describe --tags --always)
           PKG_SUFFIX=-${GIT_TAG}-obs${{ matrix.obs }}-macos-${{ matrix.arch }}
           set -e
-          case "${{ matrix.obs }}" in
-            27)
-              cmake_opt=()
-              ;;
-            28)
-              cmake_opt=(
-                -D MACOSX_PLUGIN_BUNDLE_TYPE=BNDL
-                -D OBS_BUNDLE_CODESIGN_IDENTITY='${{ secrets.MACOS_SIGNING_APPLICATION_IDENTITY }}'
-              )
-              ;;
-          esac
           cmake -S . -B build -G Ninja \
-            -D QT_VERSION=$OBS_QT_VERSION_MAJOR \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_PREFIX_PATH="$PWD/release/" \
             -DCMAKE_OSX_ARCHITECTURES=${arch/#universal/x86_64;arm64} \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} \
-            -DCMAKE_FRAMEWORK_PATH="$deps/Frameworks;$deps/lib/cmake;$deps" \
             -D PKG_SUFFIX=$PKG_SUFFIX \
-            "${cmake_opt[@]}"
+            -D OBS_BUNDLE_CODESIGN_IDENTITY='${{ secrets.MACOS_SIGNING_APPLICATION_IDENTITY }}' \
+            ${{ steps.obsdeps.outputs.PLUGIN_CMAKE_OPTIONS }}
           cmake --build build --config RelWithDebInfo
 
       - name: Prepare package
@@ -241,9 +212,8 @@ jobs:
           mkdir package
           case ${{ matrix.obs }} in
             27) (cd release/ && zip -r $zipfile ${PLUGIN_NAME}) ;;
-            28) (cd release/ && zip -r $zipfile ${PLUGIN_NAME}.plugin) ;;
+            *)  (cd release/ && zip -r $zipfile ${PLUGIN_NAME}.plugin) ;;
           esac
-          ci/macos/install-packagesbuild.sh
           packagesbuild \
             --build-folder $PWD/package/ \
             build/installer-macOS.generated.pkgproj
@@ -254,7 +224,6 @@ jobs:
           . build/ci/ci_includes.generated.sh
           pkgfile=package/${PLUGIN_NAME}${PKG_SUFFIX}.pkg
           set -e
-          . build/ci/ci_includes.generated.sh
           productsign --sign "${{ secrets.MACOS_SIGNING_INSTALLER_IDENTITY }}" $pkgfile package/${PLUGIN_NAME}-signed.pkg
           mv package/${PLUGIN_NAME}-signed.pkg $pkgfile
 
@@ -267,7 +236,7 @@ jobs:
           verbose: true
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.artifactName }}-macos-obs${{ matrix.obs }}-${{ matrix.arch }}
           path: package/*
@@ -287,12 +256,13 @@ jobs:
         shell: pwsh
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
+
       - name: Download obs-studio
         id: obsdeps
-        uses: norihiro/obs-studio-devel-action@v1-beta
+        uses: norihiro/obs-studio-devel-action@v2
         with:
           obs: ${{ matrix.obs }}
           qt: ${{ env.qt }}
@@ -301,18 +271,17 @@ jobs:
         run: |
           $CmakeArgs = @(
             '-G', "${{ env.visualStudio }}"
-            '-DQT_VERSION=${{ steps.obsdeps.outputs.OBS_QT_VERSION_MAJOR }}'
             '-DCMAKE_SYSTEM_VERSION=10.0.18363.657'
-            "-DCMAKE_INSTALL_PREFIX=$(Resolve-Path -Path "./obs-build-dependencies/plugin-deps-${{ matrix.arch }}")"
-            "-DCMAKE_PREFIX_PATH=$(Resolve-Path -Path "./obs-build-dependencies/plugin-deps-${{ matrix.arch }}")"
           )
-          cmake -S . -B build @CmakeArgs
+          cmake -S . -B build ${{ steps.obsdeps.outputs.PLUGIN_CMAKE_OPTIONS_PS }} @CmakeArgs
           cmake --build build --config RelWithDebInfo -j 4
           cmake --install build --config RelWithDebInfo --prefix "$(Resolve-Path -Path .)/release"
+
       - name: Package plugin
         run: ci/windows/package-windows.cmd ${{ matrix.obs }}
+
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.artifactName }}-windows-obs${{ matrix.obs }}-${{ matrix.arch }}
           path: package/*
