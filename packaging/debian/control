@@ -1,0 +1,20 @@
+Source: command-source-plugin-for-obs
+Section: video
+Priority: optional
+Maintainer: Norihiro Kamae <norihiro-ppa-plugins-for-obs-studio@nagater.net>
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake,
+ obs-studio,
+ libsimde-dev
+Conflicts: obs-command-source
+Standards-Version: 4.6.0
+Homepage: https://github.com/norihiro/obs-command-source
+
+Package: command-source-plugin-for-obs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: dummy source to execute command in OBS Studio
+ This plugin provides a dummy source to execute arbitrary commands when a scene is switched.
+ .
